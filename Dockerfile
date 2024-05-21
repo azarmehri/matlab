@@ -87,5 +87,23 @@ RUN wget -q https://www.mathworks.com/mpm/glnxa64/mpm \
 # https://github.com/mathworks-ref-arch/matlab-dockerfile#help-make-matlab-even-better
 ENV MW_DDUX_FORCE_ENABLE=true MW_CONTEXT_TAGS=MATLAB:DOCKERFILE:V1
 
-ENTRYPOINT ["matlab"]
-CMD [""]
+USER root
+
+# Install dependencies for matlab-proxy
+RUN DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && apt-get install --no-install-recommends -y \
+    python3 \
+    python3-pip \
+    xvfb \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip install matlab-proxy
+
+# Set environment variables used by integration
+# MATLAB should then become accessible on http://localhost:8888/matlab/index.html
+ENV MWI_APP_PORT=8888
+ENV MWI_BASE_URL="/matlab"
+
+USER matlab
+ENTRYPOINT ["matlab-proxy-app"]
